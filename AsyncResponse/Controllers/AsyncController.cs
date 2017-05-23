@@ -13,67 +13,67 @@ namespace AsyncResponse.Controllers
 {
     public class AsyncController : ApiController
     {
-        //State dictionary for sample - stores the state of the working thread
+        // Create a state dictionary that stores the state for the working thread in this sample
         private static Dictionary<Guid, bool> runningTasks = new Dictionary<Guid, bool>();
 
-
         /// <summary>
-        /// This is the method that starts the task running.  It creates a new thread to complete the work on, and returns an ID which can be passed in to check the status of the job.  
-        /// In a real world scenario your dictionary may contain the object you want to return when the work is done.
+        /// This method starts the task, creates a new thread to do work, 
+        /// and returns an ID that you can pass to the Logic Apps engine for checking job status. 
+        /// In a real world scenario, your dictionary can contain the object that you want to return after work has finished.
         /// </summary>
         /// <returns>HTTP Response with needed headers</returns>
         [HttpPost]
         [Route("api/startwork")]
         public async Task<HttpResponseMessage> longrunningtask()
         {
-            Guid id = Guid.NewGuid();  //Generate tracking Id
-            runningTasks[id] = false;  //Job isn't done yet
-            new Thread(() => doWork(id)).Start();   //Start the thread of work, but continue on before it completes
+            Guid id = Guid.NewGuid();  // Generate tracking ID for checking job status
+            runningTasks[id] = false;  // Job not done yet
+            new Thread(() => doWork(id)).Start();  // Start the thread to do work, but continue on before the job completes
             HttpResponseMessage responseMessage = Request.CreateResponse(HttpStatusCode.Accepted);   
-            responseMessage.Headers.Add("location", String.Format("{0}://{1}/api/status/{2}", Request.RequestUri.Scheme, Request.RequestUri.Host, id));  //Where the engine will poll to check status
-            responseMessage.Headers.Add("retry-after", "20");   //How many seconds it should wait (20 is default if not included)
+            responseMessage.Headers.Add("location", String.Format("{0}://{1}/api/status/{2}", Request.RequestUri.Scheme, Request.RequestUri.Host, id));  // The URL to poll for job status
+            responseMessage.Headers.Add("retry-after", "20");  // The number of seconds to wait before polling for job status again. The default is 20 seconds when not included.
             return responseMessage;
         }
 
-
         /// <summary>
-        /// This is where the actual long running work would occur.
+        /// This method performs the actual long-running work.
         /// </summary>
         /// <param name="id"></param>
         private void doWork(Guid id)
         {
             Debug.WriteLine("Starting work");
-            Task.Delay(120000).Wait(); //Do work will work for 120 seconds)
+            Task.Delay(120000).Wait(); // Do work for 120 seconds.
             Debug.WriteLine("Work completed");
-            runningTasks[id] = true;  //Set the flag to true - work done
+            runningTasks[id] = true;  // Set flag to "true" when work is done.
         }
 
         /// <summary>
-        /// Method to check the status of the job.  This is where the location header redirects to.
+        /// This method checks the job's status and is also the place to where the "location" header redirects.
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet]
         [Route("api/status/{id}")]
-        [Swashbuckle.Swagger.Annotations.SwaggerResponse(HttpStatusCode.BadRequest, "No job exists with the specified id")]
+        [Swashbuckle.Swagger.Annotations.SwaggerResponse(HttpStatusCode.BadRequest, "No job exists with the specified ID")]
         [Swashbuckle.Swagger.Annotations.SwaggerResponse(HttpStatusCode.Accepted, "The job is still running")]
         [Swashbuckle.Swagger.Annotations.SwaggerResponse(HttpStatusCode.OK, "The job has completed")]
         public HttpResponseMessage checkStatus([FromUri] Guid id)
         {
-            //If the job is complete
+            // If the job is done, return "200 OK" status with response payload (data output).
             if(runningTasks.ContainsKey(id) && runningTasks[id])
             {
                 runningTasks.Remove(id);
-                return Request.CreateResponse(HttpStatusCode.OK, "Some data could be returned here");
+                return Request.CreateResponse(HttpStatusCode.OK, "Can return some data here");
             }
-            //If the job is still running
+            // If the job is still running, return "202 ACCEPTED" status, the URL to poll for job status, and the number of seconds to wait before checking status again.
             else if(runningTasks.ContainsKey(id))
             {
                 HttpResponseMessage responseMessage = Request.CreateResponse(HttpStatusCode.Accepted);
-                responseMessage.Headers.Add("location", String.Format("{0}://{1}/api/status/{2}", Request.RequestUri.Scheme, Request.RequestUri.Host, id));  //Where the engine will poll to check status
+                responseMessage.Headers.Add("location", String.Format("{0}://{1}/api/status/{2}", Request.RequestUri.Scheme, Request.RequestUri.Host, id)); // The URL where the engine can poll for job status
                 responseMessage.Headers.Add("retry-after", "20");
                 return responseMessage;
             }
+            // No job with the specified ID was found.
             else
             {
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "No job exists with the specified ID");

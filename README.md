@@ -1,10 +1,22 @@
 [![Deploy to Azure](http://azuredeploy.net/deploybutton.png)](https://azuredeploy.net/)
 
 # Logic Apps Async Response Sample
-Sample of how to do an HTTP Async Response pattern to work with Azure Logic Apps.  See the AsyncController for the logic.  The Logic Apps engine will timeout by default after 1-2 minutes of an open HTTP Request.  By setting up this async pattern you can keep the Logic Apps engine waiting for a task for much longer (as long as you have data stored for your flow - which is up to 1 year for Premium plans).
 
-## How it Works ##
+This sample shows how to create an HTTP Async Response pattern that works for Azure Logic Apps. 
+For logic details, see the AsyncController.cs file. By default, the Logic Apps engine times out 
+after 1-2 minutes for an open HTTP Request. When you set up this async pattern, 
+you can make the Logic Apps engine wait for a task that takes longer to finish 
+(as long as you have data stored for your flow, which is up to 1 year for Premium plans).
 
-When you get the initial request to start work, you start a thread with the long-running task, and immediatly return an HTTP Response "202 Accepted" with a location header.  The location header points to the URL for the Logic Apps to check the status of the long-running job.  By default the engine will check every 20 seconds, but you can also add a "Retry-after" header to specify the amount of seconds until the next poll.
+## How the sample works
 
-After the alloted time (20 seconds), the engine will poll the URL on the location header.  If the long-running job is still going, you should return another "202 Accepted" with a location header.  If the job has completed, you should return a "200 OK", along with any relevant data.  This is what the Logic Apps engine will continue the workflow with.
+When you get the initial request to start work, start a thread with the long-running task, 
+and immediatly return an HTTP Response "202 Accepted" status with a location header. 
+The location header points to the URL where the Logic Apps engine can check status for the long-running job. 
+
+By default, the engine checks every 20 seconds, but you can also add a "Retry-after" header 
+that specifies the number of seconds until the next poll. After the given time (20 seconds), 
+the engine polls the URL on the location header. If the long-running job is still working, 
+you should return another "202 Accepted" status with a location header. 
+If the job has finished, you should return a "200 OK" status, along with any relevant data. 
+The Logic Apps engine uses this data to continue the workflow.
