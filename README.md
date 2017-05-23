@@ -3,7 +3,7 @@
 # Logic Apps Async Response Sample
 
 This sample shows how to create an HTTP Async Response pattern that works for Azure Logic Apps. 
-For logic details, see the AsyncController. By default, the Logic Apps engine times out 
+For logic details, see the AsyncController.cs file. By default, the Logic Apps engine times out 
 after 1-2 minutes for an open HTTP Request. When you set up this async pattern, 
 you can make the Logic Apps engine wait for a task that takes longer to finish 
 (as long as you have data stored for your flow, which is up to 1 year for Premium plans).
