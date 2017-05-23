@@ -13,13 +13,13 @@ namespace AsyncResponse.Controllers
 {
     public class AsyncController : ApiController
     {
-        // Sample state dictionary to store the state for the working thread
+        // Create a state dictionary that stores the state for the working thread in this sample
         private static Dictionary<Guid, bool> runningTasks = new Dictionary<Guid, bool>();
 
         /// <summary>
         /// This method starts the task, creates a new thread to do work, 
         /// and returns an ID that you can pass to the Logic Apps engine for checking job status. 
-        /// In a real world scenario, your dictionary could contain the object that you want to return after work is done.
+        /// In a real world scenario, your dictionary can contain the object that you want to return after work has finished.
         /// </summary>
         /// <returns>HTTP Response with needed headers</returns>
         [HttpPost]
@@ -30,8 +30,8 @@ namespace AsyncResponse.Controllers
             runningTasks[id] = false;  // Job not done yet
             new Thread(() => doWork(id)).Start();  // Start the thread to do work, but continue on before the job completes
             HttpResponseMessage responseMessage = Request.CreateResponse(HttpStatusCode.Accepted);   
-            responseMessage.Headers.Add("location", String.Format("{0}://{1}/api/status/{2}", Request.RequestUri.Scheme, Request.RequestUri.Host, id));  // The URL where the engine can poll for job status
-            responseMessage.Headers.Add("retry-after", "20");  // The number of seconds that the engine should wait before polling again. The default is 20 seconds when not included.
+            responseMessage.Headers.Add("location", String.Format("{0}://{1}/api/status/{2}", Request.RequestUri.Scheme, Request.RequestUri.Host, id));  // The URL to poll for job status
+            responseMessage.Headers.Add("retry-after", "20");  // The number of seconds to wait before polling for job status again. The default is 20 seconds when not included.
             return responseMessage;
         }
 
@@ -44,11 +44,11 @@ namespace AsyncResponse.Controllers
             Debug.WriteLine("Starting work");
             Task.Delay(120000).Wait(); // Do work for 120 seconds.
             Debug.WriteLine("Work completed");
-            runningTasks[id] = true;  // Set flag to true when work is done.
+            runningTasks[id] = true;  // Set flag to "true" when work is done.
         }
 
         /// <summary>
-        /// This method checks the job's status and is also the location where the location header redirects.
+        /// This method checks the job's status and is also the place to where the "location" header redirects.
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
@@ -65,7 +65,7 @@ namespace AsyncResponse.Controllers
                 runningTasks.Remove(id);
                 return Request.CreateResponse(HttpStatusCode.OK, "Can return some data here");
             }
-            // If the job is still running, return "202 ACCEPTED" status, the URL where to check again for job status, and the interval for checking status.
+            // If the job is still running, return "202 ACCEPTED" status, the URL to poll for job status, and the number of seconds to wait before checking status again.
             else if(runningTasks.ContainsKey(id))
             {
                 HttpResponseMessage responseMessage = Request.CreateResponse(HttpStatusCode.Accepted);
@@ -73,7 +73,7 @@ namespace AsyncResponse.Controllers
                 responseMessage.Headers.Add("retry-after", "20");
                 return responseMessage;
             }
-            // No job matching the specified ID was found.
+            // No job with the specified ID was found.
             else
             {
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "No job exists with the specified ID");
